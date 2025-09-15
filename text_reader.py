@@ -2,14 +2,24 @@ import curses
 import subprocess
 import pyfiglet
 import shutil
+from pydub import AudioSegment
 
-def speak(text):
+def speak(text, output_file="/tmp/tmp.mp3"):
+    # 1. Generate TTS with edge-tts
     subprocess.run([
         "edge-tts",
         "--text", text,
-        "--write-media", "/tmp/tmp.mp3"
+        "--write-media", output_file
     ])
-    subprocess.run(["mpg123", "-a", "plughw:0,0", "/tmp/tmp.mp3"])
+    
+    # 2. Prepend 100ms silence
+    silence = AudioSegment.silent(duration=100)  # 100ms of silence
+    audio = AudioSegment.from_file(output_file)
+    audio = silence + audio  # prepend
+    audio.export(output_file, format="mp3")
+    
+    # 3. Play through correct ALSA device
+    subprocess.run(["mpg123", "-q",  "--buffer", "1024", "-a", "plughw:0,0", output_file])
 
 def main(stdscr):
     curses.curs_set(1)  # show the cursor
