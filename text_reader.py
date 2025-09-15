@@ -1,9 +1,13 @@
 import subprocess
 
 def speak(text):
-    # HDMIに出力する場合
-    subprocess.run(['espeak', '-v', 'en-us', '-w', '/tmp/tmp.wav', text])
-    subprocess.run(['aplay', '-D', 'plughw:0,0', '/tmp/tmp.wav'])
+    subprocess.run([
+        "edge-tts",
+        "--text", text,
+        "--write-media", "/tmp/tmp.mp3"
+    ])
+
+    subprocess.run(["mpg123", "-a", "plughw:0,0", "/tmp/tmp.mp3"])
 
 while True:
     user_input = input("Type something (or 'exit' to quit): ")
