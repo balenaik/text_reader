@@ -1,6 +1,6 @@
+import curses
 import subprocess
 import pyfiglet
-import os
 import shutil
 
 def speak(text):
@@ -12,19 +12,35 @@ def speak(text):
 
     subprocess.run(["mpg123", "-a", "plughw:0,0", "/tmp/tmp.mp3"])
 
-def show_big_text(text):
-    os.system("clear")  # clear the terminal
-    term_width = shutil.get_terminal_size().columns
-    banner = pyfiglet.figlet_format(text, font="big")
-    for line in banner.splitlines():
-        print(line.center(term_width))
-
-while True:
-    user_input = input("Type something (or 'exit' to quit): ")
+def main(stdscr):
+    curses.curs_set(1)  # show the cursor
+    input_text = ""
     
-    if user_input.lower() in ['exit', 'quit']:
-        break
+    while True:
+        stdscr.clear()
+        term_width = shutil.get_terminal_size().columns
+        
+        # Display the current input as big text
+        if input_text:
+            banner = pyfiglet.figlet_format(input_text, font="doh")
+            for idx, line in enumerate(banner.splitlines()):
+                stdscr.addstr(idx, max((term_width - len(line)) // 2, 0), line)
+        
+        stdscr.addstr(shutil.get_terminal_size().lines - 1, 0, "> " + input_text)
+        stdscr.refresh()
+        
+        ch = stdscr.get_wch()  # get a wide character
+        
+        if ch == '\n':  # Enter pressed
+            if input_text.strip():
+                speak(input_text)
+            input_text = ""
+        elif ch in ('\x7f', '\b', curses.KEY_BACKSPACE):  # handle backspace
+            input_text = input_text[:-1]
+        elif ch == '\x1b':  # ESC to quit
+            break
+        else:
+            if isinstance(ch, str) and ch.isprintable():
+                input_text += str(ch)
 
-    if user_input.strip() != "":
-        show_big_text(user_input)
-        speak(user_input)
+curses.wrapper(main)
